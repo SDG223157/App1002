@@ -1,35 +1,169 @@
 {% extends "base.html" %}
 
+{% block title %}Register{% endblock %}
+
 {% block content %}
 <div class="auth-container">
-    <h2>Register</h2>
+    <h2 class="auth-title">Create Account</h2>
     
-    {% with messages = get_flashed_messages() %}
-    {% if messages %}
-        <div class="flashes">
-            {% for message in messages %}
-            <div class="flash-message">{{ message }}</div>
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash-message {% if category == 'error' %}error{% endif %}">
+                    {{ message }}
+                </div>
             {% endfor %}
         </div>
-    {% endif %}
+        {% endif %}
     {% endwith %}
     
-    <form method="POST" action="{{ url_for('auth.register') }}">
+    <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form">
         <div class="form-group">
-            <label for="username">Username</label>
-            <input type="text" id="username" name="username" required>
+            <label for="username">Email Address</label>
+            <input 
+                type="email" 
+                id="username" 
+                name="username" 
+                placeholder="Enter your email"
+                required 
+                autocomplete="email"
+                class="form-control"
+            >
         </div>
         
         <div class="form-group">
             <label for="password">Password</label>
-            <input type="password" id="password" name="password" required>
+            <input 
+                type="password" 
+                id="password" 
+                name="password" 
+                placeholder="Create a password"
+                required 
+                minlength="8"
+                class="form-control"
+            >
+            <small class="form-text">Password must be at least 8 characters long</small>
         </div>
         
-        <button type="submit">Register</button>
+        <button type="submit" class="submit-btn">Register</button>
     </form>
     
-    <p class="auth-link">
-        Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a>
-    </p>
+    <div class="auth-links">
+        <p>Already have an account? <a href="{{ url_for('auth.login') }}">Login here</a></p>
+    </div>
 </div>
+
+<style>
+    .auth-container {
+        max-width: 400px;
+        margin: 40px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .auth-title {
+        text-align: center;
+        color: #333;
+        margin-bottom: 30px;
+        font-size: 24px;
+    }
+
+    .auth-form {
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .form-group label {
+        color: #333;
+        font-weight: 500;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        font-size: 16px;
+        transition: border-color 0.3s;
+    }
+
+    .form-control:focus {
+        border-color: #007bff;
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+    }
+
+    .form-text {
+        color: #666;
+        font-size: 12px;
+    }
+
+    .submit-btn {
+        background-color: #007bff;
+        color: white;
+        border: none;
+        padding: 12px;
+        border-radius: 4px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+    }
+
+    .submit-btn:hover {
+        background-color: #0056b3;
+    }
+
+    .auth-links {
+        text-align: center;
+        margin-top: 20px;
+        color: #666;
+    }
+
+    .auth-links a {
+        color: #007bff;
+        text-decoration: none;
+    }
+
+    .auth-links a:hover {
+        text-decoration: underline;
+    }
+
+    .flash-messages {
+        margin-bottom: 20px;
+    }
+
+    .flash-message {
+        padding: 12px;
+        border-radius: 4px;
+        background-color: #d4edda;
+        color: #155724;
+        margin-bottom: 10px;
+    }
+
+    .flash-message.error {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+
+    @media (max-width: 480px) {
+        .auth-container {
+            margin: 20px;
+            padding: 20px;
+        }
+
+        .form-control {
+            padding: 10px;
+        }
+    }
+</style>
 {% endblock %}

@@ -5,11 +5,17 @@ from app import db, login_manager
 
 bp = Blueprint('auth', __name__, url_prefix='/auth')
 
+
 class User(UserMixin, db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)  # Add this line to match your form
     password_hash = db.Column(db.String(200), nullable=False)
 
+    def __init__(self, username, password_hash, email):
+        self.username = username
+        self.password_hash = password_hash
+        self.email = email
 @login_manager.user_loader
 def load_user(user_id):
     return User.query.get(int(user_id))
@@ -19,22 +25,29 @@ def register():
     if request.method == 'POST':
         username = request.form.get('username')
         password = request.form.get('password')
+        email = username  # Since you're using email as username
         
+        # Check if user already exists
         user = User.query.filter_by(username=username).first()
         if user:
-            flash('Username already exists')
+            flash('Email already exists')
             return redirect(url_for('auth.register'))
         
         new_user = User(
             username=username,
+            email=email,  # Add email field
             password_hash=generate_password_hash(password)
         )
         
-        db.session.add(new_user)
-        db.session.commit()
-        
-        flash('Registration successful')
-        return redirect(url_for('auth.login'))
+        try:
+            db.session.add(new_user)
+            db.session.commit()
+            flash('Registration successful')
+            return redirect(url_for('auth.login'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'Error during registration: {str(e)}')
+            return redirect(url_for('auth.register'))
     
     return render_template('auth/register.html')
 

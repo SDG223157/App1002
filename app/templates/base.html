@@ -3,22 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}{% endblock %} - Stock Analysis</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <title>{% block title %}{% endblock %}</title>
+    <style>
+        /* General styles */
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            min-height: 100vh;
+        }
+
+        /* Navigation styles */
+        .nav-container {
+            display: flex;
+            justify-content: space-between;
+            padding: 1rem 2rem;
+            background-color: #ffffff;
+            border-bottom: 1px solid #dee2e6;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .brand {
+            display: flex;
+            align-items: center;
+        }
+
+        .brand a {
+            color: #333;
+            text-decoration: none;
+            font-size: 1.25rem;
+            font-weight: bold;
+        }
+
+        .brand a:hover {
+            color: #007bff;
+        }
+
+        .auth-links {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .auth-links a {
+            text-decoration: none;
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            transition: all 0.3s ease;
+        }
+
+        .auth-links a:first-child {
+            background-color: #007bff;
+            color: white;
+        }
+
+        .auth-links a:last-child {
+            background-color: #28a745;
+            color: white;
+        }
+
+        .auth-links a:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .auth-links span {
+            color: #666;
+            margin-right: 1rem;
+        }
+
+        /* Form styles */
+        .form-container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #007bff;
+            box-shadow: 0 0 0 2px rgba(0,123,255,0.25);
+        }
+
+        /* Button styles */
+        .analyze-button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1rem;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            transition: background-color 0.3s ease;
+        }
+
+        .analyze-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* Flash messages */
+        .flash-messages {
+            max-width: 800px;
+            margin: 1rem auto;
+            padding: 0 2rem;
+        }
+
+        .flash-message {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: 4px;
+            color: #155724;
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+
+        .flash-message.error {
+            color: #721c24;
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+
+        /* Responsive design */
+        @media (max-width: 768px) {
+            .nav-container {
+                padding: 1rem;
+                flex-direction: column;
+                gap: 1rem;
+                text-align: center;
+            }
+
+            .auth-links {
+                flex-direction: column;
+                width: 100%;
+            }
+
+            .auth-links a {
+                width: 100%;
+                text-align: center;
+            }
+
+            .form-container {
+                margin: 1rem;
+                padding: 1rem;
+            }
+        }
+
+        /* Additional utility classes */
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-4 {
+            margin-top: 1.5rem;
+        }
+
+        .mb-4 {
+            margin-bottom: 1.5rem;
+        }
+    </style>
 </head>
 <body>
-    <header>
-        <h1>Stock Technical Analysis</h1>
-    </header>
-    
-    <main>
-        {% block content %}{% endblock %}
-    </main>
-    
-    <footer>
-        <p>&copy; 2024 Stock Analysis Tool</p>
-    </footer>
-    
-    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <nav class="nav-container">
+        <div class="brand">
+            <a href="{{ url_for('main.index') }}">Stock Analysis</a>
+        </div>
+        <div class="auth-links">
+            {% if current_user.is_authenticated %}
+                <span>Welcome, {{ current_user.username }}</span>
+                <a href="{{ url_for('auth.logout') }}" class="logout-btn">Logout</a>
+            {% else %}
+                <a href="{{ url_for('auth.login') }}">Login</a>
+                <a href="{{ url_for('auth.register') }}">Register</a>
+            {% endif %}
+        </div>
+    </nav>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        <div class="flash-messages">
+            {% for category, message in messages %}
+                <div class="flash-message {% if category == 'error' %}error{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
 </body>
 </html>

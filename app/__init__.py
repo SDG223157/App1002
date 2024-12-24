@@ -1,11 +1,12 @@
 from flask import Flask
 from flask.cli import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import inspect
+from flask_login import LoginManager
 import os
 
-# Initialize SQLAlchemy
+# Initialize extensions
 db = SQLAlchemy()
+login_manager = LoginManager()
 
 def create_app():
     app = Flask(__name__)
@@ -15,8 +16,6 @@ def create_app():
     
     # Config
     app.config['SECRET_KEY'] = os.getenv('SECRET_KEY', 'dev')
-    
-    # Database configuration directly in __init__.py (as backup if config.py fails)
     app.config['SQLALCHEMY_DATABASE_URI'] = (
         f"mysql+pymysql://{os.getenv('MYSQL_USER')}:"
         f"{os.getenv('MYSQL_PASSWORD')}@"
@@ -26,12 +25,17 @@ def create_app():
     )
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     
-    # Initialize database
+    # Initialize extensions with app
     db.init_app(app)
+    login_manager.init_app(app)
+    login_manager.login_view = 'auth.login'
     
-    # Register routes
+    # Register blueprints
     from app import routes
     app.register_blueprint(routes.bp)
+    
+    from app.auth import bp as auth_bp
+    app.register_blueprint(auth_bp)
     
     # Create database tables
     with app.app_context():

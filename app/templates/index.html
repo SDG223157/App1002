@@ -4,32 +4,197 @@
 
 {% block content %}
 <div class="form-container">
-    <form id="analysis-form" method="post" action="{{ url_for('main.analyze') }}" target="_blank">
-        <div class="form-group">
-            <label for="ticker">Stock Ticker:</label>
-            <input type="text" id="ticker" name="ticker" placeholder="e.g., AAPL" required>
+    {% if current_user.is_authenticated %}
+        <form id="analysis-form" method="post" action="{{ url_for('main.analyze') }}" target="_blank">
+            <div class="form-group">
+                <label for="ticker">Stock Ticker:</label>
+                <input type="text" 
+                       id="ticker" 
+                       name="ticker" 
+                       placeholder="e.g., AAPL" 
+                       required 
+                       oninput="searchTicker(this.value)" 
+                       autocomplete="off">
+                <div id="search-results" class="search-results"></div>
+            </div>
+            
+            <div class="form-group">
+                <label for="end_date">End Date (Optional):</label>
+                <input type="date" 
+                       id="end_date" 
+                       name="end_date" 
+                       placeholder="mm/dd/yyyy">
+            </div>
+            
+            <div class="form-group">
+                <label for="lookback_days">Lookback Days:</label>
+                <input type="number" 
+                       id="lookback_days" 
+                       name="lookback_days" 
+                       value="365" 
+                       min="30" 
+                       max="10000"
+                       onchange="validateLookback(this.value)">
+            </div>
+            
+            <div class="form-group">
+                <label for="crossover_days">Crossover Days:</label>
+                <input type="number" 
+                       id="crossover_days" 
+                       name="crossover_days" 
+                       value="365" 
+                       min="30" 
+                       max="1000"
+                       onchange="validateCrossover(this.value)">
+            </div>
+            
+            <button type="submit" class="analyze-button">Analyze</button>
+        </form>
+    {% else %}
+        <div class="login-prompt">
+            <p>Please <a href="{{ url_for('auth.login') }}">login</a> or 
+               <a href="{{ url_for('auth.register') }}">register</a> to analyze stocks.</p>
         </div>
-        
-        <div class="form-group">
-            <label for="end_date">End Date (Optional):</label>
-            <input type="date" id="end_date" name="end_date" placeholder="mm/dd/yyyy">
-        </div>
-        
-        <div class="form-group">
-            <label for="lookback_days">Lookback Days:</label>
-            <input type="number" id="lookback_days" name="lookback_days" 
-                   value="365" min="30" max="10000">
-        </div>
-        
-        <div class="form-group">
-            <label for="crossover_days">Crossover Days:</label>
-            <input type="number" id="crossover_days" name="crossover_days" 
-                   value="365" min="30" max="1000">
-        </div>
-        
-        <button type="submit" class="analyze-button">Analyze</button>
-    </form>
+    {% endif %}
 </div>
-{% endblock %}
-<!-- Add this somewhere in your index.html -->
 
+<style>
+    .search-results {
+        position: absolute;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        margin-top: 5px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        z-index: 1000;
+        display: none;
+    }
+
+    .search-item {
+        padding: 10px;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+    }
+
+    .search-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .search-item .symbol {
+        font-weight: bold;
+        color: #333;
+    }
+
+    .search-item .name {
+        font-size: 0.9em;
+        color: #666;
+    }
+
+    .form-group {
+        position: relative;
+        margin-bottom: 20px;
+    }
+
+    .form-group input[type="number"] {
+        width: 100%;
+        padding: 8px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .analyze-button {
+        width: 100%;
+        padding: 12px;
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 16px;
+    }
+
+    .analyze-button:hover {
+        background-color: #0056b3;
+    }
+</style>
+
+<script>
+function validateLookback(value) {
+    const lookbackInput = document.getElementById('lookback_days');
+    const numValue = parseInt(value);
+    
+    if (numValue < 30) {
+        lookbackInput.value = 30;
+    } else if (numValue > 10000) {
+        lookbackInput.value = 10000;
+    }
+}
+
+function validateCrossover(value) {
+    const crossoverInput = document.getElementById('crossover_days');
+    const numValue = parseInt(value);
+    
+    if (numValue < 30) {
+        crossoverInput.value = 30;
+    } else if (numValue > 1000) {
+        crossoverInput.value = 1000;
+    }
+}
+
+function searchTicker(query) {
+    if (query.length < 1) {
+        document.getElementById('search-results').style.display = 'none';
+        return;
+    }
+
+    fetch(`/search_ticker?query=${encodeURIComponent(query)}`)
+        .then(response => response.json())
+        .then(data => {
+            const resultsDiv = document.getElementById('search-results');
+            if (data.length > 0) {
+                resultsDiv.innerHTML = data.map(item => `
+                    <div class="search-item" onclick="selectTicker('${item.symbol}')">
+                        <span class="symbol">${item.symbol}</span>
+                        ${item.name ? `<span class="name"> - ${item.name}</span>` : ''}
+                    </div>
+                `).join('');
+                resultsDiv.style.display = 'block';
+            } else {
+                resultsDiv.style.display = 'none';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+function selectTicker(symbol) {
+    document.getElementById('ticker').value = symbol;
+    document.getElementById('search-results').style.display = 'none';
+}
+
+// Close search results when clicking outside
+document.addEventListener('click', function(event) {
+    const searchResults = document.getElementById('search-results');
+    const tickerInput = document.getElementById('ticker');
+    if (!tickerInput.contains(event.target) && !searchResults.contains(event.target)) {
+        searchResults.style.display = 'none';
+    }
+});
+
+// Form submission handler
+document.getElementById('analysis-form').addEventListener('submit', function(e) {
+    const lookbackValue = document.getElementById('lookback_days').value;
+    const crossoverValue = document.getElementById('crossover_days').value;
+    
+    // Validate values one last time
+    if (parseInt(lookbackValue) < 30) this.lookback_days.value = 30;
+    if (parseInt(lookbackValue) > 10000) this.lookback_days.value = 10000;
+    if (parseInt(crossoverValue) < 30) this.crossover_days.value = 30;
+    if (parseInt(crossoverValue) > 1000) this.crossover_days.value = 1000;
+});
+</script>
+{% endblock %}

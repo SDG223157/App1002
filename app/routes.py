@@ -124,58 +124,46 @@ def search_ticker():
     except Exception as e:
         logger.error(f"Search error: {str(e)}")
         return jsonify([])
-
 @bp.route('/analyze', methods=['POST'])
+@login_required
 def analyze():
     try:
+        # Get and validate form data
         ticker_input = request.form.get('ticker', '').split()[0].upper()
-        logger.info(f"Analyzing ticker: {ticker_input}")
+        lookback_days = int(request.form.get('lookback_days', 365))
+        crossover_days = int(request.form.get('crossover_days', 365))
+        end_date = request.form.get('end_date')
+
+        # Log the received values
+        logger.info(f"Analysis request - Ticker: {ticker_input}, Lookback: {lookback_days}, "
+                   f"Crossover: {crossover_days}, End Date: {end_date}")
         
+        # Validate inputs
         if not ticker_input:
             raise ValueError("Ticker symbol is required")
         
-        if ticker_input in TICKER_DICT:
-            ticker = ticker_input
-            logger.info(f"Using predefined ticker: {ticker}")
-        else:
-            matching_tickers = [t['symbol'] for t in TICKERS if t['symbol'].startswith(ticker_input)]
-            ticker = matching_tickers[0] if matching_tickers else ticker_input
-            logger.info(f"Using matched ticker: {ticker}")
+        # Validate lookback_days
+        lookback_days = max(30, min(10000, lookback_days))
         
-        end_date = request.form.get('end_date')
-        if end_date:
-            try:
-                datetime.strptime(end_date, '%Y-%m-%d')
-                logger.info(f"Using end date: {end_date}")
-            except ValueError:
-                raise ValueError("Invalid date format. Please use YYYY-MM-DD format")
-        else:
-            end_date = None
-            logger.info("Using current date")
-        
-        lookback_days = int(request.form.get('lookback_days', 365))
-        if lookback_days < 30 or lookback_days > 10000:
-            raise ValueError("Lookback days must be between 30 and 10000")
-        logger.info(f"Using lookback days: {lookback_days}")
+        # Validate crossover_days
+        crossover_days = max(30, min(1000, crossover_days))
             
-        crossover_days = int(request.form.get('crossover_days', 365))
-        if crossover_days < 30 or crossover_days > 1000:
-            raise ValueError("Crossover days must be between 30 and 1000")
-        logger.info(f"Using crossover days: {crossover_days}")
-        
+        # Create visualization
         fig = create_stock_visualization(
-            ticker,
+            ticker_input,
             end_date=end_date,
             lookback_days=lookback_days,
             crossover_days=crossover_days
         )
         
+        # Convert to HTML
         html_content = fig.to_html(
             full_html=True,
             include_plotlyjs=True,
             config={'responsive': True}
         )
         
+        # Return response
         response = make_response(html_content)
         response.headers['Content-Type'] = 'text/html'
         return response
@@ -204,9 +192,75 @@ def analyze():
         </html>
         """
         return error_html, 500
-
 # Keep your existing imports and code at the top
 
+@bp.route('/analyze', methods=['POST'])
+def analyze():
+    try:
+        # Get and validate form data
+        ticker_input = request.form.get('ticker', '').split()[0].upper()
+        lookback_days = int(request.form.get('lookback_days', 365))
+        crossover_days = int(request.form.get('crossover_days', 365))
+        end_date = request.form.get('end_date')
+
+        # Log the received values
+        logger.info(f"Analysis request - Ticker: {ticker_input}, Lookback: {lookback_days}, "
+                   f"Crossover: {crossover_days}, End Date: {end_date}")
+        
+        # Validate inputs
+        if not ticker_input:
+            raise ValueError("Ticker symbol is required")
+        
+        # Validate lookback_days
+        lookback_days = max(30, min(10000, lookback_days))
+        
+        # Validate crossover_days
+        crossover_days = max(30, min(1000, crossover_days))
+            
+        # Create visualization
+        fig = create_stock_visualization(
+            ticker_input,
+            end_date=end_date,
+            lookback_days=lookback_days,
+            crossover_days=crossover_days
+        )
+        
+        # Convert to HTML
+        html_content = fig.to_html(
+            full_html=True,
+            include_plotlyjs=True,
+            config={'responsive': True}
+        )
+        
+        # Return response
+        response = make_response(html_content)
+        response.headers['Content-Type'] = 'text/html'
+        return response
+        
+    except Exception as e:
+        error_msg = f"Error analyzing {ticker_input}: {str(e)}"
+        logger.error(f"{error_msg}\n{traceback.format_exc()}")
+        error_html = f"""
+        <html>
+            <head>
+                <title>Error</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; padding: 2rem; }}
+                    .error {{ color: #dc3545; padding: 1rem; background-color: #f8d7da; 
+                             border: 1px solid #f5c6cb; border-radius: 3px; }}
+                    .back-link {{ margin-top: 1rem; display: block; }}
+                </style>
+            </head>
+            <body>
+                <div class="error">
+                    <h2>Analysis Error</h2>
+                    <p>{error_msg}</p>
+                </div>
+                <a href="javascript:window.close();" class="back-link">Close Window</a>
+            </body>
+        </html>
+        """
+        return error_html, 500
 # Add this new route with bp instead of main
 # Add this import at the top@bp.route('/tables')
 @bp.route('/tables')

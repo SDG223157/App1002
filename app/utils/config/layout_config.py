@@ -32,7 +32,7 @@ LAYOUT_CONFIG = {
             'analysis_summary': {'x': 0.05, 'y': 0.56},
             'trading_signals': {'x': 0.56, 'y': 0.56},
             'metrics': {'x': 0.05, 'y': 0.36},
-            'growth': {'x': 0.05, 'y': 0.16}
+            'growth': {'x': 0.05, 'y': 0.15}
         },
         'stats': {
             'price': {'x': 0.07, 'y': 0.95},

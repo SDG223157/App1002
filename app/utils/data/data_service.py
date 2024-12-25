@@ -9,6 +9,8 @@ from dateutil.relativedelta import relativedelta
 from app.utils.config.metrics_config import METRICS_MAP, CAGR_METRICS
 from sqlalchemy import create_engine, inspect, text
 import os
+import logging
+
 
 class DataService:
     def __init__(self):
@@ -69,17 +71,17 @@ class DataService:
             # Get the latest trading day (last Friday if weekend)
             latest_trading_day = pd.Timestamp.now()
             while latest_trading_day.weekday() > 4:  # 5 = Saturday, 6 = Sunday
-                latest_trading_day = latest_trading_day - pd.Timedelta(days=1)
+                latest_trading_day -= pd.Timedelta(days=1)
             latest_trading_day = latest_trading_day.strftime('%Y-%m-%d')
             
             # Adjust end_date if it's beyond latest trading day
-            if pd.to_datetime(end_date) > pd.to_datetime(latest_trading_day):
-                end_date = latest_trading_day
-                print(f"Adjusted end date to latest trading day: {latest_trading_day}")
+            end_date = min(pd.to_datetime(end_date), pd.to_datetime(latest_trading_day)).strftime('%Y-%m-%d')
+            if end_date != pd.to_datetime(latest_trading_day).strftime('%Y-%m-%d'):
+                logging.info(f"Adjusted end date to latest trading day: {latest_trading_day}")
             
             # First try to get data from database
             if self.table_exists(table_name):
-                print(f"Getting historical data for {ticker} from database")
+                logging.info(f"Getting historical data for {ticker} from database")
                 
                 # Get table's date range
                 date_range_query = text("""
@@ -90,42 +92,41 @@ class DataService:
                 db_start = pd.to_datetime(date_range['min_date'][0]).strftime('%Y-%m-%d')
                 db_end = pd.to_datetime(date_range['max_date'][0]).strftime('%Y-%m-%d')
                 
-                print(f"Database date range: {db_start} to {db_end}")
-                print(f"Requested date range: {start_date} to {end_date}")
+                logging.info(f"Database date range: {db_start} to {db_end}")
+                logging.info(f"Requested date range: {start_date} to {end_date}")
                 
-                # Get data from database regardless of date range
+                # Get data from database
                 df = pd.read_sql_table(table_name, self.engine)
                 df.set_index('Date', inplace=True)
                 
-                # Filter for requested date range
-                mask = (df.index >= start_date) & (df.index <= end_date)
-                filtered_df = df[mask]
-                
-                if not filtered_df.empty:
-                    print(f"Found {len(filtered_df)} rows of data in existing table")
+                # Check if the requested date range is within the database's date range
+                if start_date >= db_start and end_date <= db_end:
+                    # If the requested date range is within the database date range
+                    filtered_df = df[(df.index >= start_date) & (df.index <= end_date)]
+                    logging.info(f"Found {len(filtered_df)} rows of data in the requested date range")
                     return filtered_df
-                
-                print("No data found in date range, refreshing data")
-                success = self.store_historical_data(ticker)
-                if success:
-                    df = pd.read_sql_table(table_name, self.engine)
-                    df.set_index('Date', inplace=True)
-                    mask = (df.index >= start_date) & (df.index <= end_date)
-                    return df[mask]
-
+                else:
+                    # If not within the range, refresh the data
+                    logging.info("No data found in requested date range, refreshing data")
+                    success = self.store_historical_data(ticker)
+                    if success:
+                        df = pd.read_sql_table(table_name, self.engine)
+                        df.set_index('Date', inplace=True)
+                        # Return the filtered data for the requested range after refresh
+                        return df[(df.index >= start_date) & (df.index <= end_date)]
+            
             # If not in database, store it first
-            print(f"Data not found in database for {ticker}, fetching data")
+            logging.info(f"Data not found in database for {ticker}, fetching data")
             success = self.store_historical_data(ticker)
             if success:
                 df = pd.read_sql_table(table_name, self.engine)
                 df.set_index('Date', inplace=True)
-                mask = (df.index >= start_date) & (df.index <= end_date)
-                return df[mask]
+                return df[(df.index >= start_date) & (df.index <= end_date)]
             else:
                 raise ValueError(f"Failed to store data for {ticker}")
                     
         except Exception as e:
-            print(f"Error in get_historical_data for {ticker}: {str(e)}")
+            logging.error(f"Error in get_historical_data for {ticker}: {str(e)}")
             raise
     def get_financial_data(self, ticker: str, metric_description: str, 
                         start_year: str, end_year: str) -> pd.Series:

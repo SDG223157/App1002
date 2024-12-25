@@ -5,7 +5,7 @@
 {% block content %}
 <div class="form-container">
     {% if current_user.is_authenticated %}
-        <form id="analysis-form" method="post" action="{{ url_for('main.analyze') }}" target="_blank">
+        <form id="analysis-form" method="post" action="{{ url_for('main.analyze_stock') }}" target="_blank">
             <div class="form-group">
                 <label for="ticker">Stock Ticker:</label>
                 <input type="text" 

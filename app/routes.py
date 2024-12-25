@@ -264,6 +264,7 @@ def analyze():
 # Add this new route with bp instead of main
 # Add this import at the top@bp.route('/tables')
 @bp.route('/tables')
+@login_required
 def tables():
     """Show database tables in document tree structure"""
     try:

@@ -10,7 +10,17 @@ from app.utils.analyzer.stock_analyzer import create_stock_visualization
 from sqlalchemy import inspect, text
 from flask_login import login_required, current_user
 
-# Change the blueprint name to be more specific
+# Set up logger
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.StreamHandler(sys.stdout)
+    ]
+)
+
+# Create Blueprint
 bp = Blueprint('main', __name__)
 
 @bp.route('/')
@@ -53,9 +63,9 @@ def search_ticker():
         logger.error(f"Search error: {str(e)}")
         return jsonify([])
 
-@bp.route('/stock_analysis', methods=['POST'])  # Changed route name from /analyze
+@bp.route('/stock_analysis', methods=['POST'])
 @login_required
-def analyze_stock():  # Changed function name from analyze
+def analyze_stock():
     try:
         # Get and validate form data
         ticker_input = request.form.get('ticker', '').split()[0].upper()

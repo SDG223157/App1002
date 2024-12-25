@@ -23,6 +23,40 @@ logging.basicConfig(
 # Create Blueprint
 bp = Blueprint('main', __name__)
 
+def load_tickers():
+    """Load tickers from TypeScript file"""
+    try:
+        current_dir = os.path.dirname(os.path.abspath(__file__))
+        file_path = os.path.join(current_dir, '..', 'tickers.ts')
+        
+        if not os.path.exists(file_path):
+            logger.error(f"Tickers file not found at: {file_path}")
+            return [], {}
+            
+        with open(file_path, 'r', encoding='utf-8') as f:
+            content = f.read()
+            
+        pattern = r'{[^}]*symbol:\s*"([^"]*)",[^}]*name:\s*"([^"]*)"[^}]*}'
+        matches = re.finditer(pattern, content)
+        
+        TICKERS = []
+        TICKER_DICT = {}
+        
+        for match in matches:
+            symbol, name = match.groups()
+            ticker_obj = {"symbol": symbol, "name": name}
+            TICKERS.append(ticker_obj)
+            TICKER_DICT[symbol] = name
+        
+        return TICKERS, TICKER_DICT
+        
+    except Exception as e:
+        logger.error(f"Error loading tickers: {str(e)}")
+        return [], {}
+
+# Load tickers at module level
+TICKERS, TICKER_DICT = load_tickers()
+
 @bp.route('/')
 def index():
     today = datetime.now().strftime('%Y-%m-%d')

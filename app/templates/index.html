@@ -34,9 +34,9 @@
                        value="365" 
                        min="30" 
                        max="10000"
-                       onchange="validateLookback(this.value)">
+                       {% comment %} onchange="validateLookback(this.value)"> {% endcomment %}
             </div>
-            
+            <input type="hidden" id="hidden_lookback" name="lookback_days" value="365">
             <div class="form-group">
                 <label for="crossover_days">Crossover Days:</label>
                 <input type="number" 

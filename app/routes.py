@@ -1,4 +1,5 @@
 from flask import Blueprint, render_template, request, make_response, jsonify
+from flask_login import login_required
 from datetime import datetime
 import yfinance as yf
 import logging

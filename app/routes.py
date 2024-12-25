@@ -103,29 +103,31 @@ def analyze_stock():
     try:
         # Get and validate form data
         ticker_input = request.form.get('ticker', '').split()[0].upper()
-        lookback_days = int(request.form.get('lookback_days', 365))
+        
+        # Debug print to see what's being received
+        print("Form data received:", dict(request.form))
+        
+        # Convert lookback_days to int with validation
+        try:
+            lookback_days = int(request.form.get('lookback_days', 365))
+            lookback_days = max(30, min(10000, lookback_days))
+            print(f"Using lookback_days: {lookback_days}")  # Debug print
+        except ValueError:
+            lookback_days = 365
+            print("Using default lookback_days: 365")
+        
         crossover_days = int(request.form.get('crossover_days', 365))
         end_date = request.form.get('end_date')
 
-        # Log the received values
-        logger.info(f"Analysis request - Ticker: {ticker_input}, Lookback: {lookback_days}, "
-                   f"Crossover: {crossover_days}, End Date: {end_date}")
-        
         # Validate inputs
         if not ticker_input:
             raise ValueError("Ticker symbol is required")
-        
-        # Validate lookback_days
-        lookback_days = max(30, min(10000, lookback_days))
-        
-        # Validate crossover_days
-        crossover_days = max(30, min(1000, crossover_days))
-            
-        # Create visualization
+
+        # Create visualization with explicit parameters
         fig = create_stock_visualization(
-            ticker_input,
+            ticker=ticker_input,
             end_date=end_date,
-            lookback_days=lookback_days,
+            lookback_days=lookback_days,  # Pass the validated lookback_days
             crossover_days=crossover_days
         )
         
@@ -144,24 +146,4 @@ def analyze_stock():
     except Exception as e:
         error_msg = f"Error analyzing {ticker_input}: {str(e)}"
         logger.error(f"{error_msg}\n{traceback.format_exc()}")
-        error_html = f"""
-        <html>
-            <head>
-                <title>Error</title>
-                <style>
-                    body {{ font-family: Arial, sans-serif; padding: 2rem; }}
-                    .error {{ color: #dc3545; padding: 1rem; background-color: #f8d7da; 
-                             border: 1px solid #f5c6cb; border-radius: 3px; }}
-                    .back-link {{ margin-top: 1rem; display: block; }}
-                </style>
-            </head>
-            <body>
-                <div class="error">
-                    <h2>Analysis Error</h2>
-                    <p>{error_msg}</p>
-                </div>
-                <a href="javascript:window.close();" class="back-link">Close Window</a>
-            </body>
-        </html>
-        """
-        return error_html, 500
+        return error_msg, 500

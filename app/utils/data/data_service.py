@@ -89,8 +89,28 @@ class DataService:
                     FROM {}
                 """.format(table_name))
                 date_range = pd.read_sql_query(date_range_query, self.engine)
-                db_start = pd.to_datetime(date_range['min_date'][0]).strftime('%Y-%m-%d')
-                db_end = pd.to_datetime(date_range['max_date'][0]).strftime('%Y-%m-%d')
+
+                # Check for None in date_range values
+                min_date = date_range['min_date'][0]
+                max_date = date_range['max_date'][0]
+
+                # If min_date or max_date is None, refresh the data
+                if min_date is None or max_date is None:
+                    logging.info(f"Database date range is invalid for {ticker}: min_date={min_date}, max_date={max_date}")
+                    logging.info("Refreshing data from external source...")
+                    success = self.store_historical_data(ticker)
+                    if success:
+                        # Reload data after refreshing
+                        df = pd.read_sql_table(table_name, self.engine)
+                        df.set_index('Date', inplace=True)
+                        # Return the filtered data for the requested range after refresh
+                        return df[(df.index >= start_date) & (df.index <= end_date)]
+                    else:
+                        raise ValueError(f"Failed to store data for {ticker}")
+                
+                # Proceed with date conversion if valid
+                db_start = pd.to_datetime(min_date).strftime('%Y-%m-%d')
+                db_end = pd.to_datetime(max_date).strftime('%Y-%m-%d')
                 
                 logging.info(f"Database date range: {db_start} to {db_end}")
                 logging.info(f"Requested date range: {start_date} to {end_date}")
